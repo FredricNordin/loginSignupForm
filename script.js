@@ -1,17 +1,17 @@
 if (window.location.href.indexOf("/") > -1) {
-    // Create the signInUp form.
-    const signInUp = document.createElement("form");
-    signInUp.className = "signInUp";
-    const mainSection = document.querySelector("main");
-    mainSection.appendChild(signInUp);
-  
-    signIn(); // Run login at start. (Default)
-  }
-  
-  // Log in.
-  function signIn() {
-    const signInUp = document.querySelector(".signInUp");
-    signInUp.innerHTML = `
+  // Create the signInUp form.
+  const signInUp = document.createElement("form");
+  signInUp.className = "signInUp";
+  const mainSection = document.querySelector("main");
+  mainSection.appendChild(signInUp);
+
+  signIn(); // Run login at start. (Default)
+}
+
+// Log in.
+function signIn() {
+  const signInUp = document.querySelector(".signInUp");
+  signInUp.innerHTML = `
     <div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
   <div class="max-w-md w-full space-y-8">
     <div>
@@ -58,50 +58,50 @@ if (window.location.href.indexOf("/") > -1) {
   </div>
 </div>
     `;
-  
-    if (document.querySelector("button")) {
-      const loginBtn = document.querySelector("button");
-      loginBtn.addEventListener("click", async (stopRefresh) => {
-        if (
-          document.querySelector("#username").value.length < 3 ||
-          document.querySelector("#password").value.length < 6
-        ) {
-          return;
+
+  if (document.querySelector("button")) {
+    const loginBtn = document.querySelector("button");
+    loginBtn.addEventListener("click", async (stopRefresh) => {
+      if (
+        document.querySelector("#username").value.length < 3 ||
+        document.querySelector("#password").value.length < 6
+      ) {
+        return;
+      } else {
+        stopRefresh.preventDefault();
+        const response = await fetch("http://localhost:1337/api/auth/local", {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            identifier: document.querySelector("#username").value,
+            password: document.querySelector("#password").value,
+          }),
+        });
+        const data = await response.json();
+
+        // Successful Log in.
+        if (data.jwt) {
+          signInUp.remove();
+          return signedIn(data);
+
+          // Error
         } else {
-          stopRefresh.preventDefault();
-          const response = await fetch("http://localhost:1337/api/auth/local", {
-            method: "POST",
-            mode: "cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              identifier: document.querySelector("#username").value,
-              password: document.querySelector("#password").value,
-            }),
-          });
-          const data = await response.json();
-  
-          // Successful Log in.
-          if (data.jwt) {
-            signInUp.remove();
-            return signedIn(data);
-  
-            // Error
-          } else {
-            signInUp.innerHTML = `
+          signInUp.innerHTML = `
               <h2>Something went wrong!</h2>
               <h3>${data.error.message}</h3>
               <p id="signInUp-link" onclick="signIn()">Try again.</p>
               `;
-          }
         }
-      });
-    }
+      }
+    });
   }
-  
-  // Register account.
-  function signUp() {
-    const signInUp = document.querySelector(".signInUp");
-    signInUp.innerHTML = `
+}
+
+// Register account.
+function signUp() {
+  const signInUp = document.querySelector(".signInUp");
+  signInUp.innerHTML = `
     <div class="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
   <div class="max-w-md w-full space-y-8">
     <div>
@@ -125,6 +125,8 @@ if (window.location.href.indexOf("/") > -1) {
         <div>
           <label for="password" class="sr-only">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password" minlength="6" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" placeholder="Password">
+          <p id="passwordStrength" class="mt-2 text-center text-sm text-gray-600"></p>
+          <p id="passwordTip" class="mt-2 text-center text-sm text-gray-600"></p>
         </div>
       </div>
       <div>
@@ -144,63 +146,93 @@ if (window.location.href.indexOf("/") > -1) {
   </div>
 </div>
     `;
-  
-    // Account registration.
-    if (document.querySelector("button")) {
-      const registerBtn = document.querySelector("button");
-      registerBtn.addEventListener("click", async (stopRefresh) => {
-        if (
-          document.querySelector("#username").value.length < 3 ||
-          document.querySelector("#email-address").value.length < 6 ||
-          document.querySelector("#full-name").value.length < 1 ||
-          document.querySelector("#password").value.length < 6
-        ) {
-          return;
+
+  // Password strength check.
+  const passwordInput = document.querySelector("#password");
+  document.addEventListener("keyup", () => {
+    const passwordStrengthIndicator =
+      document.querySelector("#passwordStrength");
+    const passwordTip = document.querySelector("#passwordTip");
+
+    if (passwordInput.value.match(/^(?=.*[a-z]).{6,20}$/)) {
+      passwordTip.textContent = "(try adding at least one uppercase letter)";
+      passwordStrengthIndicator.textContent = "Password strength is weak!";
+    }
+    if (passwordInput.value.match(/^(?=.*[a-z])(?=.*[A-Z]).{6,20}$/)) {
+      passwordTip.textContent = "(try adding at least one numeric digit)";
+      passwordStrengthIndicator.textContent =
+        "Password strength could be better!";
+    }
+    if (passwordInput.value.match(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/)) {
+      passwordTip.textContent = " (try adding at least one special character)";
+      passwordStrengthIndicator.textContent = "Password strength is OK!";
+    }
+    if (
+      passwordInput.value.match(
+        /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{6,20}$/
+      )
+    ) {
+      passwordTip.textContent = "(Password strength is now very strong)";
+      passwordStrengthIndicator.textContent = "Perfect!";
+    }
+  });
+
+  // Account registration.
+  if (document.querySelector("button")) {
+    const registerBtn = document.querySelector("button");
+    registerBtn.addEventListener("click", async (stopRefresh) => {
+      if (
+        document.querySelector("#username").value.length < 3 ||
+        document.querySelector("#email-address").value.length < 6 ||
+        document.querySelector("#full-name").value.length < 1 ||
+        document.querySelector("#password").value.length < 6
+      ) {
+        return;
+      } else {
+        stopRefresh.preventDefault();
+        const response = await fetch(
+          "http://localhost:1337/api/auth/local/register",
+          {
+            method: "POST",
+            mode: "cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: document.querySelector("#username").value,
+              email: document.querySelector("#email-address").value,
+              name: document.querySelector("#full-name").value,
+              password: document.querySelector("#password").value,
+            }),
+          }
+        );
+        const data = await response.json();
+
+        // Successful registration. (Automatically log in when done)
+        if (data.jwt) {
+          signInUp.remove();
+          return signedIn(data);
+
+          // Error
         } else {
-          stopRefresh.preventDefault();
-          const response = await fetch(
-            "http://localhost:1337/api/auth/local/register",
-            {
-              method: "POST",
-              mode: "cors",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: document.querySelector("#username").value,
-                email: document.querySelector("#email-address").value,
-                name: document.querySelector("#full-name").value,
-                password: document.querySelector("#password").value,
-              }),
-            }
-          );
-          const data = await response.json();
-  
-          // Successful registration. (Automatically log in when done)
-          if (data.jwt) {
-            signInUp.remove();
-            return signedIn(data);
-  
-            // Error
-          } else {
-            signInUp.innerHTML = `
+          signInUp.innerHTML = `
               <h2>Something went wrong!</h2>
               <h3>${data.error.message}</h3>
               <p id="signInUp-link" onclick="signUp()">Try again.</p>
               `;
-          }
         }
-      });
-    }
+      }
+    });
   }
-  
-  // User is logged in.
-  async function signedIn(data) {
-    const userContent = document.createElement("div");
-    userContent.className = "userContent";
-    const mainSection = document.querySelector("main");
-    mainSection.appendChild(userContent);
-  
-    userContent.innerHTML = `
+}
+
+// User is logged in.
+async function signedIn(data) {
+  const userContent = document.createElement("div");
+  userContent.className = "userContent";
+  const mainSection = document.querySelector("main");
+  mainSection.appendChild(userContent);
+
+  userContent.innerHTML = `
     <p>Welcome ${data.user.username}!</p>
     <p>You are now logged in.</p>
     `;
-  }
+}
